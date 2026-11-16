@@ -1,0 +1,13 @@
+{
+  "name": "test-crypto-data",
+  "account_id": "0beaeb0776ca9e8404297afe0da73e5a",
+  "main": "node_modules/@fangorn-network/westmarch/worker/index.js",
+  "compatibility_date": "2025-09-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [{ "binding": "DB", "database_name": "test-crypto-data", "database_id": "4a81261d-42b0-4f01-bef8-4d67ebc077e6" }],
+  "ai": { "binding": "AI" },
+  "assets": { "directory": "site", "binding": "ASSETS" },
+  "triggers": { "crons": ["* * * * *"] },
+  "alias": { "@huggingface/transformers": "./node_modules/@fangorn-network/westmarch/worker/no-model.js" },
+  "vars": { "CONFIG": { "name": "test-crypto-data", "repos": ["test-crypto-data"], "network": "baseSepolia" } }
+}

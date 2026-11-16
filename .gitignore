@@ -1,6 +1,8 @@
+# local config (paths), see .env.example
+.env
 # local state, rebuilt by daily.mjs (fangorn clone)
 .fangorn/
-# SharedStorage symlink and the cron log
+# staging dir and the cron log
 stage
 daily.log
 # app: the Worker key (secret), local index + seed, deps, wrangler cache

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crypto Market Tape</title>
+<meta name="description" content="Recorded Polymarket US crypto up/down trades and order books, with Coinbase spot top-of-book, published daily on Fangorn.">
+<style>
+:root { --bg: #fbfaf8; --fg: #1d1d1f; --muted: #6b6b70; --line: #e4e2dd; --panel: #ffffff; --accent: #2f6fdb; --span: #2f6fdb; --track: #ecebe7;
+        --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --mono: ui-monospace, SFMono-Regular, Menlo, monospace; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #141416; --fg: #ececee; --muted: #9a9aa2; --line: #2b2b30; --panel: #1b1b1e; --accent: #7aa7ff; --span: #7aa7ff; --track: #26262b; } }
+:root[data-theme="dark"] { --bg: #141416; --fg: #ececee; --muted: #9a9aa2; --line: #2b2b30; --panel: #1b1b1e; --accent: #7aa7ff; --span: #7aa7ff; --track: #26262b; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--font); }
+main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.01em; }
+h2 { font-size: 17px; margin: 40px 0 12px; }
+p { margin: 0 0 12px; }
+.lede { color: var(--muted); max-width: 70ch; }
+a { color: var(--accent); }
+code, .mono { font-family: var(--mono); font-size: 13px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 24px 0 8px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 13px; }
+.wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; min-width: 860px; }
+th, td { text-align: left; padding: 10px 9px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
+th.n { text-align: right; }
+.bar { position: relative; width: 150px; height: 10px; background: var(--track); border-radius: 5px; }
+.bar i { position: absolute; top: 0; bottom: 0; background: var(--span); border-radius: 5px; min-width: 2px; }
+.ticks { display: flex; justify-content: space-between; width: 150px; color: var(--muted); font-size: 11px; }
+.dl a { margin-right: 10px; }
+.muted { color: var(--muted); }
+pre { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow-x: auto; font: 13px/1.5 var(--mono); white-space: pre-wrap; word-break: break-word; }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+dt { color: var(--muted); }
+dd { margin: 0; word-break: break-all; }
+#status { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Crypto Market Tape</h1>
+  <p class="lede">Recorded market data for Polymarket US crypto up/down markets (BTC, ETH, SOL, XRP; 5-minute, 15-minute and 1-hour windows): every trade and every top-10 order-book change, plus Coinbase spot top-of-book once a second. One file of each per UTC day, published to Fangorn, where each is signed and anchored on chain. Recording runs part of each day; the timeline shows the span covered.</p>
+
+  <div class="stats" id="stats"></div>
+  <p id="status">Loading…</p>
+
+  <h2>Available days</h2>
+  <div class="wrap">
+    <table>
+      <thead><tr>
+        <th>Date (UTC)</th><th>Span covered</th><th class="n">Hours</th><th class="n">PM trades</th><th class="n">Book changes</th>
+        <th class="n">Markets</th><th class="n">Spot snapshots</th><th>Download</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <h2>File formats</h2>
+  <p>Both files are gzip-compressed JSON lines. Each record carries the file's <code>sha256</code>; check it after downloading.</p>
+  <p><b>pm-YYYYMMDD.jsonl.gz</b>: Polymarket rows, in the order received</p>
+  <pre id="schema-pm"></pre>
+  <p><b>books-YYYYMMDD.jsonl.gz</b>: spot top-of-book</p>
+  <pre id="schema-books"></pre>
+
+  <h2>For agents and code</h2>
+  <dl>
+    <dt>Fangorn repo</dt><dd class="mono" id="repo"></dd>
+    <dt>MCP</dt><dd class="mono" id="mcp"></dd>
+    <dt>Every record</dt><dd class="mono"><a href="/view.json">/view.json</a></dd>
+    <dt>Agent card</dt><dd class="mono"><a href="/.well-known/agent-card.json">/.well-known/agent-card.json</a></dd>
+  </dl>
+</main>
+<script>
+const OWNER = "0x951f9e73fa32a83246782edb659ae1669c035bdf", REPO = "test-crypto-data";
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => n == null ? "–" : Number(n).toLocaleString("en");
+const mb = (b) => (b / 1e6).toFixed(1) + " MB";
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+const secOfDay = (iso) => { const d = new Date(iso); return d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds(); };
+
+$("repo").textContent = `${OWNER}/${REPO}`;
+$("mcp").textContent = `claude mcp add --transport http ${REPO} ${location.origin}/mcp`;
+
+function stat(value, label) { return el("div", { className: "stat" }, el("b", { textContent: value }), el("span", { textContent: label })); }
+
+function bar(p) {
+  const a = secOfDay(p.first_t) / 864, b = Math.max(secOfDay(p.last_t) / 864, a);
+  const i = el("i"); i.style.left = a + "%"; i.style.width = (b - a) + "%";
+  const wrap = el("div", { title: `${p.first_t.slice(11, 16)}–${p.last_t.slice(11, 16)} UTC` }, el("div", { className: "bar" }, i));
+  wrap.append(el("div", { className: "ticks" }, ...["0", "6", "12", "18", "24"].map((t) => el("span", { textContent: t }))));
+  return wrap;
+}
+
+function link(p) {
+  return el("a", { href: p.file, textContent: `${p.kind} · ${mb(p.size)}`, title: `sha256 ${p.sha256}`, download: p.title });
+}
+
+async function main() {
+  const res = await fetch("/view.json");
+  if (!res.ok) { $("status").textContent = "The index is still catching up. Try again in a minute."; return; }
+  const view = await res.json();
+  const recs = view.records.filter((r) => r.publisher.toLowerCase() === OWNER && r.repo === REPO && r.type === "file" && r.payload?.date);
+  const days = {};
+  for (const r of recs) (days[r.payload.date] ??= {})[r.payload.kind] = r.payload;
+  const dates = Object.keys(days).sort().reverse();
+
+  let hours = 0, trades = 0, changes = 0, bytes = 0;
+  for (const d of dates) {
+    const { pm, books } = days[d], p = pm ?? books;
+    hours += p.hours; trades += pm?.counts?.pmt ?? 0; changes += pm?.counts?.pmd ?? 0; bytes += (pm?.size ?? 0) + (books?.size ?? 0);
+    $("rows").append(el("tr", {},
+      el("td", { className: "mono", textContent: d }),
+      el("td", {}, bar(p)),
+      el("td", { className: "n", textContent: p.hours.toFixed(1) }),
+      el("td", { className: "n", textContent: fmt(pm?.counts?.pmt) }),
+      el("td", { className: "n", textContent: fmt(pm?.counts?.pmd) }),
+      el("td", { className: "n", textContent: fmt(pm?.markets) }),
+      el("td", { className: "n", textContent: fmt(books?.rows) }),
+      el("td", { className: "dl" }, ...[pm, books].filter(Boolean).map(link))));
+  }
+  $("stats").append(stat(fmt(dates.length), "days"), stat(hours.toFixed(1), "hours recorded"), stat(fmt(trades), "PM trades"),
+                    stat(fmt(changes), "order-book changes"), stat((bytes / 1e6).toFixed(0) + " MB", "to download"));
+  const any = (k) => recs.find((r) => r.payload.kind === k)?.payload.schema ?? "";
+  $("schema-pm").textContent = any("pm").replaceAll("; ", "\n");
+  $("schema-books").textContent = any("books");
+  $("status").textContent = dates.length ? `Newest: ${dates[0]}. New days are added after each UTC day closes.` : "No days published yet.";
+}
+main().catch((e) => { $("status").textContent = "Could not load the data: " + e.message; });
+</script>
+</body>
+</html>

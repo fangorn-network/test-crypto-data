@@ -1,0 +1,50 @@
+{
+  "protocolVersion": "0.3.0",
+  "name": "test-crypto-data",
+  "description": "Recorded market data for Polymarket US crypto up/down markets (BTC, ETH, SOL, XRP; 5m, 15m, 1h): every trade and top-10 order-book change, plus Coinbase spot top-of-book once a second. One gzip JSON-lines file of each per UTC day, with coverage span, row counts, schema and sha256 in each record.",
+  "url": "https://test-crypto-data.fangorn-0be.workers.dev/",
+  "version": "2026-11-16",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": false,
+    "extensions": [
+      {
+        "uri": "https://fangorn.network/a2a/repo/v1",
+        "description": "The Fangorn app this agent fronts.",
+        "required": false,
+        "params": {
+          "chainId": 84532,
+          "dataRegistry": "0x0F3eb0E62CF610dbaC6B3aD4Bf4cE38Ab50EBCC5",
+          "publisher": "0x951f9e73FA32A83246782edb659ae1669C035BdF",
+          "repo": "test-crypto-data",
+          "repos": ["0x951f9e73fa32a83246782edb659ae1669c035bdf/test-crypto-data"],
+          "views": ["https://test-crypto-data.fangorn-0be.workers.dev/view.json"],
+          "mcp": "https://test-crypto-data.fangorn-0be.workers.dev/mcp"
+        }
+      }
+    ]
+  },
+  "defaultInputModes": ["application/json"],
+  "defaultOutputModes": ["application/json"],
+  "skills": [
+    {
+      "id": "search",
+      "name": "Search",
+      "description": "Find days of recorded data by meaning, e.g. 'Polymarket trades on 2026-11-14' or 'Coinbase top of book'. Each hit is one daily file record: its download URL, coverage span, row counts, schema and sha256.",
+      "tags": ["market-data", "polymarket", "coinbase", "crypto", "order-book", "trades", "prediction-markets"]
+    },
+    {
+      "id": "repos",
+      "name": "Repos",
+      "description": "Which repos this app follows and how many records each holds.",
+      "tags": ["market-data", "crypto"]
+    },
+    {
+      "id": "get",
+      "name": "Get",
+      "description": "One record live from Fangorn by id: pm-YYYYMMDD (Polymarket trades and book changes) or books-YYYYMMDD (spot top-of-book).",
+      "tags": ["market-data", "crypto"]
+    }
+  ]
+}
