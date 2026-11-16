@@ -1,2 +1,11 @@
+# local state, rebuilt by daily.mjs (fangorn clone)
+.fangorn/
+# SharedStorage symlink and the cron log
 stage
 daily.log
+# app: the Worker key (secret), local index + seed, deps, wrangler cache
+app/.indexer_key
+app/index.db*
+app/seed.sql
+app/node_modules/
+app/.wrangler/
